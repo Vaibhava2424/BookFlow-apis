@@ -107,38 +107,39 @@ app.get("/", (req, res) => {
     res.status(200).json({ message: "Backend API is running" });
 });
 // User Authentication Routes
+// POST /api/v1/signup
+// POST /api/v1/signup
 app.post("/api/v1/signup", async (req, res) => {
     const { username, email, password } = req.body;
-    // Zod validation
+    // Validation using Zod
     const userDataRules = z.object({
         username: z.string(),
-        email: z.string().email(), // Corrected email validation
+        email: z.string(),
         password: z.string()
     });
-    const userValidation = userDataRules.safeParse({ username, password, email });
-    if (!userValidation.success) {
-        return res.status(400).json({
-            message: "Invalid credentials",
-            error: userValidation.error.issues
-        });
+    const validation = userDataRules.safeParse({ username, email, password });
+    if (!validation.success) {
+        return res.status(400).json({ message: "Invalid credentials", error: validation.error.issues });
     }
     try {
+        // Check if user already exists
         const existingUser = await UserModel.findOne({ $or: [{ username }, { email }] });
         if (existingUser) {
             return res.status(409).json({ message: "User already exists" });
         }
-        // Hashing password
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
-        // Creating a user
-        const newUser = await UserModel.create({
-            username,
-            email,
-            password: hashedPassword
-        });
+        // Create new user
+        const newUser = await UserModel.create({ username, email, password: hashedPassword });
         const { password: _, ...userWithoutPassword } = newUser.toObject();
+        // Generate JWT token
+        const token = jwt.sign({ userId: newUser._id, username: newUser.username }, JWT_SECRET, { expiresIn: "7d" } // token valid for 7 days
+        );
+        // Send token with user info
         res.status(201).json({
             message: "User successfully created",
-            result: userWithoutPassword
+            result: userWithoutPassword,
+            token
         });
     }
     catch (error) {
