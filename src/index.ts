@@ -272,6 +272,7 @@
     }
   });
 
+
   // Get all feedbacks
   app.get('/api/feedback', async (req: Request, res: Response) => {
     try {
@@ -307,6 +308,7 @@
   });
 
 
+console.log("Feedback routes are registered");
 
 
   // Get all books with filtering and pagination
