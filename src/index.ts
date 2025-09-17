@@ -89,6 +89,15 @@ const userBookSchema = new Schema({
 });
 const UserBookModel = model('UserBook', userBookSchema);
 
+// ------------------ Feedback Schema ------------------
+const feedbackSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  email: { type: String },
+  message: { type: String, required: true }
+}, { timestamps: true });
+
+const Feedback = mongoose.model('Feedback', feedbackSchema);
+
 // --- End of Schema Definitions ---
 
 
@@ -245,6 +254,58 @@ app.delete('/api/users/:id', async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error deleting user", error: err });
   }
 });
+
+// ------------------ Feedback Routes ------------------
+
+// Add feedback
+app.post('/api/feedback', async (req: Request, res: Response) => {
+  const { username, email, message } = req.body;
+  if (!username || !message) return res.status(400).json({ error: "Username and message are required" });
+
+  try {
+    const feedback = new Feedback({ username, email, message });
+    await feedback.save();
+    res.status(201).json({ message: "Feedback submitted successfully", feedback });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+// Get all feedbacks
+app.get('/api/feedback', async (req: Request, res: Response) => {
+  try {
+    const feedbacks = await Feedback.find({});
+    res.json(feedbacks);
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+// Delete feedback by ID
+app.delete('/api/feedback/:id', async (req: Request, res: Response) => {
+  try {
+    const deletedFeedback = await Feedback.findByIdAndDelete(req.params.id);
+    if (!deletedFeedback) return res.status(404).json({ message: 'Feedback not found' });
+    res.status(200).json({ message: 'Feedback deleted successfully', feedback: deletedFeedback });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+// Delete all feedbacks
+app.delete('/api/feedback', async (req: Request, res: Response) => {
+  try {
+    const result = await Feedback.deleteMany({});
+    res.status(200).json({ message: 'All feedbacks deleted successfully', deletedCount: result.deletedCount });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
 
 
 
